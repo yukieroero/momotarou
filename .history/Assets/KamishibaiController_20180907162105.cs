@@ -1,0 +1,75 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using Timeline;
+
+public class KamishibaiController : MonoBehaviour {
+    public Canvas canvas;
+
+    public TextAsset timeline;
+    private TimelineReader reader;
+    private List<string[]> timelineHead;
+    private List<string[]> timelineBody;
+
+    private HeadHandler headHandler;
+    private BodyHandler bodyHandler;
+
+    private Image background;
+    private Text title;
+
+    public HeadHandler GetHeadHandler()
+    {
+        return headHandler;
+    }
+
+    // 与えられた画像を背景に設置
+    public void setBackground (string path) {
+        title.text = "";
+        background.sprite = Resources.Load<Sprite>(path);
+    }
+
+    public void act(Person actor, string serif, string position) {
+        Sprite actorImage = Resources.Load<Sprite>(actor.GetImage());
+        GameObject NewObj = new GameObject(); //Create the GameObject
+        SpriteRenderer NewImage = NewObj.AddComponent<SpriteRenderer>(); //Add the Image Component script
+        RectTransform NewRectTrans = NewObj.AddComponent<RectTransform>(); //Add the Image Component script
+        Vector2 anchoredPosition = new Vector2(0, 0);
+        if (position == "left") {
+            NewImage.flipX = true;
+            NewRectTrans.anchorMax = new Vector2(0f, 0.5f);
+            NewRectTrans.anchorMin = new Vector2(0f, 0.5f);
+            anchoredPosition.x = NewImage.size.x;
+        } else if (position == "right") {
+            NewRectTrans.anchorMax = new Vector2(1f, 0.5f);
+            NewRectTrans.anchorMin = new Vector2(1f, 0.5f);
+            anchoredPosition.x = -NewImage.size.x;
+        }
+        NewImage.sprite = actorImage; //Set the Sprite of the Image Component on the new GameObject
+        NewObj.GetComponent<RectTransform>().SetParent(canvas.transform); //Assign the newly created Image GameObject as a Child of the Parent Panel.
+        NewRectTrans.anchoredPosition = anchoredPosition;
+        NewObj.SetActive(true);
+    }
+    public void setTitle (string value) {
+        title.text = value;
+    }
+
+    // Use this for initialization
+    void Start () {
+        background = GameObject.Find("Canvas/Background").GetComponent<Image>();
+        title = GameObject.Find("Canvas/Title").GetComponent<Text>();
+        reader = new TimelineReader(timeline);
+        timelineHead = reader.GetTimeLineHead();
+        timelineBody = reader.GetTimeLineBody();
+        headHandler = new HeadHandler(this, timelineHead);
+        bodyHandler = new BodyHandler(this, timelineBody);
+    }
+
+    // Update is called once per frame
+    void Update () {
+        if (Input.GetKeyUp(KeyCode.Return)) {
+            bodyHandler.play();
+        }
+    }
+}
+

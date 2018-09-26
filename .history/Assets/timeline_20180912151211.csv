@@ -1,0 +1,14 @@
+[head]
+title,桃太郎
+# 人物定義
+person,oldman,おじいさん,,person/oldman/normal
+person,oldwoman,おばあさん,,person/oldwoman/normal
+
+[body]
+# シーン定義
+scene,inaka,f2f,background/inaka
+
+say,right,oldman,わしがおじいさんじゃ,1
+say,left,oldwoman,わたしがおばあさんじゃ,1
+say,right,oldman,二言目じゃよ,1
+say,left,oldwoman,二言目よ,1

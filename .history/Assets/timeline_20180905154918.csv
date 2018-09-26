@@ -1,0 +1,11 @@
+[head]
+# 人物定義
+person,oldman,おじいさん,,oldman/normal
+person,oldwoman,おばあさん,,oldwoman/normal
+
+[body]
+# シーン定義
+scene,inaka,f2f,inaka
+
+say,right,oldman,わしがおじいさんじゃ,1
+say,right,oldwoman,わたしがおばあさんじゃ,1

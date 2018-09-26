@@ -1,0 +1,27 @@
+[head]
+title,桃太郎
+# 人物定義
+person,oldman,おじいさん,,person/oldman/normal
+person,oldwoman,おばあさん,,person/oldwoman/normal
+person,momotaro,ももたろう,,person/momotaro/normal
+
+[body]
+# シーン定義
+scene,inaka,f2f,background/inaka
+
+narration,show,むかしむかし、あるところに、おじいさんとおばあさんがくらしておりました。\nある日のこと。
+
+say,right,oldman,わしは、山へしばかりにいってくるぞ,1
+say,right,oldwoman,わたしは、川へせんたくにいってきます,1
+
+narration,show,二人はでかけていきました。\nおばあさんが川でせんたくをしていると、大きなももが、どんぶらこ、どんぶらことながれてきました。
+
+say,left,oldwoman,まあ、大きなももだこと。おじいさんにもってかえってたべさせてあげましょう。,1
+
+narration,show,おばあさんは、よろこんでももをひろってかえりました。
+
+say,right,oldman,こ、これは、なんと大きなももじゃ,1
+say,left,oldwoman,おじいさん。さっそくたべましょう,1
+say,left,momotaro,おぎゃあーっ。おぎゃあーっ。,1
+say,right,oldwoman,なんとまあげんきなおとこのこじゃ。なまえはなんとつけましょう。,1
+say,right,oldman,ももからうまれたから、“ももたろう”となづけよう！,1
