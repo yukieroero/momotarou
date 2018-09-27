@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Timeline;
+using Audio;
 using UnityEngine.SceneManagement;
 public class KamishibaiController : MonoBehaviour {
     public Canvas canvas;
@@ -39,11 +40,11 @@ public class KamishibaiController : MonoBehaviour {
         return headHandler;
     }
     // bgmを再生
-    public void playAudio (string path, int fadeInTime, bool Loop) {
-        AudioClip bgm = Resources.Load<AudioClip>(path);
-        AudioSource audio = canvas.gameObject.GetComponent<AudioSource>() ?? canvas.gameObject.AddComponent<AudioSource>();
-        audio.clip = bgm;
-        audio.loop = Loop;
+    public void playAudio (string path, int fadeDuration, float volume, bool loop) {
+        AudioController controller = gameObject.GetComponent<AudioController>();
+        controller.audioSource.loop = loop;
+        if (fadeDuration > 0) controller.setFadeIn(fadeDuration, volume);
+        controller.play(Resources.Load<AudioClip>(path));
     }
 
     // 与えられた画像を背景に設置
@@ -176,6 +177,7 @@ public class KamishibaiController : MonoBehaviour {
         timelineBody = reader.GetTimeLineBody();
         headHandler = new HeadHandler(this, timelineHead);
         bodyHandler = new BodyHandler(this, timelineBody);
+        AudioController ac = this.gameObject.AddComponent<AudioController>();
     }
 
     // Update is called once per frame

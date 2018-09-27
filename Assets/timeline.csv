@@ -14,7 +14,7 @@ scene,inaka,f2f,background/inaka
 
 # bgm再生
 # bgm, source, fadeInTime(ms), volume(0<x<1), loop(bool)
-bgm,bgm/op,1000,1,True
+bgm,bgm/op,4000,1,True
 
 narration,show,むかしむかし、あるところに、おじいさんとおばあさんがくらしておりました。\r\nある日のこと。
 narration,hide

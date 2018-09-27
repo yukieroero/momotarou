@@ -443,10 +443,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   canvas: {fileID: 1698893980}
-  jibunBalloon: {fileID: 1396350712857566, guid: ea34d1420e45344ab9dd617bae9b841b,
-    type: 2}
-  aiteBalloon: {fileID: 1404541425841758, guid: 05c84d5af0159446889c8d2203248f68,
-    type: 2}
   timeline: {fileID: 4900000, guid: 8de0d902142f04ee09c14c521a62844d, type: 3}
 --- !u!114 &1698893978
 MonoBehaviour:

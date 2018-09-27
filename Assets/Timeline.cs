@@ -121,6 +121,8 @@ namespace Timeline {
             "say",
             // ナレーション
             "narration",
+            // bgm
+            "bgm",
         };
         private int index = 0;
         private int limit = 0;
@@ -178,9 +180,10 @@ namespace Timeline {
                     case "bgm":
                         // bgm, bgm/op, 1000, 1, true
                         string bgmPath = line[1];
-                        int fadeInTime = int.Parse(line[2]);
-                        bool loop = bool.Parse(line[3]);
-                        kamishibai.playAudio(bgmPath, fadeInTime, loop);
+                        int fadeDuration = int.Parse(line[2]);
+                        float volume = float.Parse(line[3]);
+                        bool loop = bool.Parse(line[4]);
+                        kamishibai.playAudio(bgmPath, fadeDuration, volume, loop);
                         this.incrementIndex ();
                         break;
                     default:
