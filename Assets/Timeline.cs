@@ -182,8 +182,17 @@ namespace Timeline {
                         string bgmPath = line[1];
                         int fadeDuration = int.Parse(line[2]);
                         float volume = float.Parse(line[3]);
-                        bool loop = bool.Parse(line[4]);
-                        kamishibai.playAudio(bgmPath, fadeDuration, volume, loop);
+                        // fadein
+                        if (volume > 0) {
+                            bool loop = bool.Parse(line[4]);
+                            float loopStart = float.Parse(line.Length > 5 ? line[5] : "0");
+                            float loopEnd = float.Parse(line.Length > 6 ? line[6] : "");
+                            kamishibai.playAudio(bgmPath, fadeDuration, volume, loop, loopStart, loopEnd);
+                        }
+                        // fadeout
+                        else {
+                            kamishibai.stopAudio(bgmPath, fadeDuration);
+                        }
                         this.incrementIndex ();
                         break;
                     default:

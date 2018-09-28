@@ -6,7 +6,6 @@ using Timeline;
 using Audio;
 using UnityEngine.SceneManagement;
 public class KamishibaiController : MonoBehaviour {
-    public Canvas canvas;
     private float canvasWidth;
     private float canvasHeight;
 
@@ -40,11 +39,17 @@ public class KamishibaiController : MonoBehaviour {
         return headHandler;
     }
     // bgmを再生
-    public void playAudio (string path, int fadeDuration, float volume, bool loop) {
+    public void playAudio (string path, int fadeDuration, float volume, bool loop, float loopStart, float loopEnd) {
         AudioController controller = gameObject.GetComponent<AudioController>();
-        controller.audioSource.loop = loop;
+        controller.setLoop(loop, loopStart, loopEnd);
         if (fadeDuration > 0) controller.setFadeIn(fadeDuration, volume);
         controller.play(Resources.Load<AudioClip>(path));
+    }
+    // bgmをstop
+    public void stopAudio (string path, int fadeDuration) {
+        AudioController controller = gameObject.GetComponent<AudioController>();
+        if (fadeDuration > 0) controller.setFadeOut(fadeDuration);
+        controller.stop();
     }
 
     // 与えられた画像を背景に設置
@@ -106,7 +111,7 @@ public class KamishibaiController : MonoBehaviour {
             ActorImage.sprite = actorImage;
             ActorImage.preserveAspect = true;
 
-            Actor.GetComponent<RectTransform>().SetParent(canvas.transform);
+            Actor.GetComponent<RectTransform>().SetParent(this.gameObject.transform);
             Actor.SetActive(true);
 
             ActorRectTrans.anchoredPosition = anchoredPosition;
@@ -163,14 +168,15 @@ public class KamishibaiController : MonoBehaviour {
     }
 
     // Use this for initialization
+    void Awake () {}
     void Start () {
-        canvasWidth = canvas.GetComponent<RectTransform>().rect.width;
-        canvasHeight = canvas.GetComponent<RectTransform>().rect.height;
+        canvasWidth = this.gameObject.GetComponent<RectTransform>().rect.width;
+        canvasHeight = this.gameObject.GetComponent<RectTransform>().rect.height;
         background = GameObject.Find("/Canvas/Background").GetComponent<Image>();
         title = GameObject.Find("/Canvas/Title").GetComponent<Text>();
 
         narration = new Narrator();
-        narration.GameObject.transform.SetParent(canvas.transform);
+        narration.GameObject.transform.SetParent(this.gameObject.transform);
 
         reader = new TimelineReader(timeline);
         timelineHead = reader.GetTimeLineHead();

@@ -8,13 +8,23 @@ person,oldwoman,おばあさん,,person/oldwoman/normal
 person,momotaro/akachan,あかちゃん,,person/momotaro/akachan
 person,momotaro,ももたろう,,person/momotaro/normal
 
+# bgm定義
+# bgm, source, loop_start(ms), loop_end(ms)
+bgm,bgm/bgm_shopping_street.m4a,14858,31847
+
 [body]
 # シーン定義
 scene,inaka,f2f,background/inaka
 
 # bgm再生
-# bgm, source, fadeInTime(ms), volume(0<x<1), loop(bool)
-bgm,bgm/op,4000,1,True
+# bgm, source, fadeDuration(ms), volume(0<=x<=1), loop(bool)
+# bgm,bgm/op,4000,1,True,1000,5000
+bgm,bgm/bgm_shopping_street,4000,1,True,14858,31847
+
+# 4000ms後に自動先送り
+nothing@4000
+
+bgm,bgm/op,4000,0
 
 narration,show,むかしむかし、あるところに、おじいさんとおばあさんがくらしておりました。\r\nある日のこと。
 narration,hide
