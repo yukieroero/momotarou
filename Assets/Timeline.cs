@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace Timeline {
 
-    public class TimelineHelper {
+    public static class TimelineHelper {
         public static Color ChangeColor (Color current, float r = float.NaN, float g = float.NaN, float b = float.NaN, float a = float.NaN) {
             Color newColor = current;
             if (!float.IsNaN (r)) newColor.r = r;
@@ -82,11 +82,14 @@ namespace Timeline {
     }
 
     public class HeadHandler {
-        private Dictionary<string, Person> persons = new Dictionary<string, Person> ();
+        private Dictionary<string, Person> persons = new Dictionary<string, Person>();
+        private Dictionary<string, AdvancedAudioClip> bgms = new Dictionary<string, AdvancedAudioClip>();
         private List<string> headerCommandList = new List<string> {
             // 登場人物の定義
             "person",
             "title",
+            // BGMの定義
+            "bgm",
         };
 
         private KamishibaiController kamishibai;
@@ -94,15 +97,24 @@ namespace Timeline {
             kamishibai = controller;
             foreach (string[] line in headDatas) {
                 string command = line[0];
-                if (headerCommandList.Contains (command)) {
+                if (headerCommandList.Contains(command)) {
                     switch (command) {
                         case "person":
                             string identifier = line[1];
-                            GetPersons ().Add (identifier, new Person (line, kamishibai));
+                            GetPersons().Add (identifier, new Person (line, kamishibai));
                             break;
                         case "title":
                             string value = line[1];
-                            kamishibai.setTitle (value);
+                            kamishibai.setTitle(value);
+                            break;
+                        case "bgm":
+                            // bgm, source/id, loop_start(ms), loop_end(ms)
+                            string bgmId = line[1];
+                            float loopStart = float.Parse(line.Length > 2 ? line[2] : "0");
+                            float loopEnd = float.Parse(line.Length > 3 ? line[3] : "0");
+                            AdvancedAudioClip clip = AudioManager.Instance.getBGM(bgmId);
+                            clip.SetLoop(loopStart, loopEnd);
+                            GetBGMs().Add(bgmId, clip);
                             break;
                     }
                 }
@@ -111,6 +123,9 @@ namespace Timeline {
 
         public Dictionary<string, Person> GetPersons () {
             return persons;
+        }
+        public Dictionary<string, AdvancedAudioClip> GetBGMs () {
+            return bgms;
         }
     }
     public class BodyHandler {
@@ -179,19 +194,18 @@ namespace Timeline {
                         break;
                     case "bgm":
                         // bgm, bgm/op, 1000, 1, true
-                        string bgmPath = line[1];
+                        string bgmId = line[1];
                         int fadeDuration = int.Parse(line[2]);
                         float volume = float.Parse(line[3]);
                         // fadein
                         if (volume > 0) {
                             bool loop = bool.Parse(line[4]);
-                            float loopStart = float.Parse(line.Length > 5 ? line[5] : "0");
-                            float loopEnd = float.Parse(line.Length > 6 ? line[6] : "");
-                            kamishibai.playAudio(bgmPath, fadeDuration, volume, loop, loopStart, loopEnd);
+                            // kamishibai.playAudio(bgmPath, fadeDuration, volume, loop, loopStart, loopEnd);
+                            AudioManager.Instance.fadeBGM(bgmId, fadeDuration, volume, loop);
                         }
                         // fadeout
                         else {
-                            kamishibai.stopAudio(bgmPath, fadeDuration);
+                            AudioManager.Instance.fadeBGM(bgmId, fadeDuration, volume);
                         }
                         this.incrementIndex ();
                         break;

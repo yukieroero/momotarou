@@ -168,10 +168,14 @@ public class KamishibaiController : MonoBehaviour {
     }
 
     // Use this for initialization
-    void Awake () {}
+    void Awake () {
+        Debug.Log("end of kamishibiai awake");
+    }
     void Start () {
+        Debug.Log("start of kamishibiai start");
         canvasWidth = this.gameObject.GetComponent<RectTransform>().rect.width;
         canvasHeight = this.gameObject.GetComponent<RectTransform>().rect.height;
+
         background = GameObject.Find("/Canvas/Background").GetComponent<Image>();
         title = GameObject.Find("/Canvas/Title").GetComponent<Text>();
 
@@ -183,7 +187,7 @@ public class KamishibaiController : MonoBehaviour {
         timelineBody = reader.GetTimeLineBody();
         headHandler = new HeadHandler(this, timelineHead);
         bodyHandler = new BodyHandler(this, timelineBody);
-        AudioController ac = this.gameObject.AddComponent<AudioController>();
+        Debug.Log("end of kamishibiai start");
     }
 
     // Update is called once per frame
