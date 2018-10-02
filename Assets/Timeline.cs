@@ -138,11 +138,14 @@ namespace Timeline {
             "narration",
             // bgm
             "bgm",
+            // 何もしないで先おくり
+            "nothing",
         };
         private int index = 0;
         private int limit = 0;
         private List<string[]> datas;
         private KamishibaiController kamishibai;
+        private bool isNothing;
 
         public int GetLimit () {
             return limit;
@@ -156,11 +159,13 @@ namespace Timeline {
             kamishibai = controller;
             datas = bodyDatas;
             limit = datas.Count;
+            isNothing = false;
         }
         public void play () {
+            if (isNothing) return;
             string[] line = datas[GetIndex ()];
-            Debug.LogFormat("command: {0}", line);
-            string command = line[0];
+            string command = line[0].Split('@')[0];
+            Debug.LogFormat("command: {0}", command);
             if (bodyCommandList.Contains(command)) {
                 switch (command) {
                     case "scene":
@@ -197,17 +202,20 @@ namespace Timeline {
                         string bgmId = line[1];
                         int fadeDuration = int.Parse(line[2]);
                         float volume = float.Parse(line[3]);
-                        // fadein
-                        if (volume > 0) {
-                            bool loop = bool.Parse(line[4]);
-                            // kamishibai.playAudio(bgmPath, fadeDuration, volume, loop, loopStart, loopEnd);
-                            AudioManager.Instance.fadeBGM(bgmId, fadeDuration, volume, loop);
-                        }
-                        // fadeout
-                        else {
-                            AudioManager.Instance.fadeBGM(bgmId, fadeDuration, volume);
-                        }
-                        this.incrementIndex ();
+                        bool loop = line.Length > 4 ? bool.Parse(line[4]) : false;
+                        AudioManager.Instance.fadeBGM(bgmId, fadeDuration, volume, loop);
+                        this.next();
+                        break;
+                    case "nothing":
+                        // nothing@4000
+                        Debug.Log("nothing start");
+                        float waitTime = float.Parse(line[0].Split('@')[1]);
+                        isNothing = true;
+                        kamishibai.sleep(waitTime, () => {
+                            isNothing = false;
+                            this.next();
+                            Debug.Log("nothing end");
+                        });
                         break;
                     default:
                         break;

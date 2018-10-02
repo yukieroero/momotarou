@@ -11,6 +11,7 @@ person,momotaro,ももたろう,,person/momotaro/normal
 # bgm定義 ループポイントの定義
 # bgm, source, loop_start(ms), loop_end(ms)
 bgm,BGM/bgm_shopping_street,14858,31847
+bgm,BGM/op
 
 [body]
 # シーン定義
@@ -19,13 +20,11 @@ scene,inaka,f2f,background/inaka
 # bgm再生
 # bgm, source, fadeDuration(ms), volume(0<=x<=1), loop(bool)
 bgm,BGM/bgm_shopping_street,4000,1,True
-bgm,BGM/bgm_shopping_street,4000,0.3,True
-bgm,BGM/bgm_shopping_street,4000,0.7,True
-
 # 4000ms後に自動先送り
 nothing@4000
-
 bgm,BGM/bgm_shopping_street,4000,0
+# 4000ms後に自動先送り
+nothing@4000
 
 narration,show,むかしむかし、あるところに、おじいさんとおばあさんがくらしておりました。\r\nある日のこと。
 narration,hide
@@ -38,12 +37,18 @@ narration,hide
 
 scene,inaka,f2f,background/kawa
 
+bgm,BGM/op,4000,1,True
+
 say,left,oldwoman,まあ、大きなももだこと。おじいさんにもってかえってたべさせてあげましょう。,1
 
 narration,show,おばあさんは、よろこんでももをひろってかえりました。
 narration,hide
 
 scene,room,f2f,background/room
+
+bgm,BGM/op,0,0,True
+
+bgm,BGM/bgm_shopping_street,4000,1,True
 
 say,right,oldman,こ、これは、なんと大きなももじゃ,1
 say,left,oldwoman,おじいさん。さっそくたべましょう,1

@@ -166,6 +166,23 @@ public class KamishibaiController : MonoBehaviour {
         // 新しいメッセージは毎回一番下に表示されるので、必要なくなりました
         // StartCoroutine(ScrollToBottom(chatview));
     }
+    /// <summary>
+    /// 渡された処理を指定時間後に実行する
+    /// </summary>
+    /// <param name="waitTime">遅延時間[ミリ秒]</param>
+    /// <param name="event">実行したい処理</param>
+    /// <returns></returns>
+    public void sleep(float waitTime, System.Action action) {
+
+        StartCoroutine(_sleep(waitTime, action));
+    }
+    private IEnumerator _sleep(float waitTime, System.Action action)
+    {
+        yield return new WaitForSeconds(waitTime / 1000f);
+        action();
+    }
+
+
 
     // Use this for initialization
     void Awake () {
