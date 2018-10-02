@@ -19,6 +19,8 @@ scene,inaka,f2f,background/inaka
 # bgm再生
 # bgm, source, fadeDuration(ms), volume(0<=x<=1), loop(bool)
 bgm,BGM/bgm_shopping_street,4000,1,True
+bgm,BGM/bgm_shopping_street,4000,0.3,True
+bgm,BGM/bgm_shopping_street,4000,0.7,True
 
 # 4000ms後に自動先送り
 nothing@4000

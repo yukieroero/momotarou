@@ -9,12 +9,13 @@ using UnityEngine;
 /// を記憶している
 /// </summary>
 public class AdvancedAudioClip {
-    AudioClip instance;
-    float loopStart;
-    float loopEnd;
-    float volume; // 再生される音量 fedeする場合も目標値が入る
-    float duration;
-    float gainPerSecond;
+    AudioClip instance; // AudioClip本体
+    float loopStart; // ループのスタート位置
+    float loopEnd; // ループの終了位置
+    float destination; // 再生される音量 fedeする場合も目標値が入る
+    float duration; // fadeにかける時間
+    float gainPerSecond; // volume/秒
+    float distance; // 総変化音量
     public AdvancedAudioClip(AudioClip clip) {
         instance = clip;
         // デフォルトでは曲頭から曲末までループする
@@ -27,10 +28,11 @@ public class AdvancedAudioClip {
     }
     public void SetFadeMeta(float volume, float duration, float currentVolume) {
         // volume まで durationずつ音量を変化させたい
-        this.volume = volume;
+        this.destination = volume;
         this.duration = duration;
         // 毎秒変化させたい音量 = 変化させる音量 / 何秒で変化させるか
         this.gainPerSecond = (volume - currentVolume) / ((float)this.duration / 1000f);
+        this.distance = volume - currentVolume;
     }
 
     public AudioClip Instance
@@ -55,11 +57,11 @@ public class AdvancedAudioClip {
             return loopEnd;
         }
     }
-    public float Volume
+    public float Destination
     {
         get
         {
-            return volume;
+            return destination;
         }
     }
     public float GainPerSecond
@@ -67,6 +69,13 @@ public class AdvancedAudioClip {
         get
         {
             return gainPerSecond;
+        }
+    }
+    public float Distance
+    {
+        get
+        {
+            return distance;
         }
     }
 }
@@ -86,9 +95,7 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
         return _bgmDic[path];
     }
 
-    private bool isPlaying;
-    private bool isFadeIn;
-    private bool isFadeOut;
+    private bool isFading;
 
     /// <summary>
     /// BGMフェードインフェードアウトの実装
@@ -99,36 +106,29 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
     /// </summary>
     public void fadeBGM(string bgmId, float duration, float volume, bool loop=false) {
         AdvancedAudioClip clip = this.getBGM(bgmId);
-        if (volume > 0) {
-            isPlaying = true;
-            isFadeIn = true;
-            isFadeOut = false;
-            AttachBGMSourceClip = clip;
-            AttachBGMSource.clip = clip.Instance;
-            // フェードインはボリューム0スタート
-            AttachBGMSource.volume = 0;
-            AttachBGMSource.playOnAwake = false;
-            AttachBGMSource.Play();
-        } else {
-            isFadeIn = false;
-            isFadeOut = true;
-        }
+        AttachBGMSourceClip = clip;
         clip.SetFadeMeta(volume, duration, AttachBGMSource.volume);
+        if (AttachBGMSource.clip != clip.Instance) AttachBGMSource.clip = clip.Instance;
+        if (AttachBGMSource.isPlaying == false) {
+            // 変化量が正であればfadeinなので再生を開始
+            if (clip.Distance > 0) AttachBGMSource.Play();
+        }
+        isFading=true;
     }
-    void fadeIn() {
-        float targetVolume = AttachBGMSourceClip.Volume;
+    void fade() {
+        AdvancedAudioClip clip = AttachBGMSourceClip;
+        float startVolume = clip.Destination - clip.Distance;
+        float currentVolume = AttachBGMSource.volume;
         // 毎フレーム変化させる音量 = 毎秒変化させたい音量 * (秒/1f) <= 1fあたりの秒数
         float gainPerFrame = AttachBGMSourceClip.GainPerSecond * Time.deltaTime;
-        if (AttachBGMSource.volume < targetVolume) AttachBGMSource.volume += gainPerFrame;
-        // 終了
-        else isFadeIn = false;
-    }
-    void fadeOut() {
-        // 毎フレーム変化させる音量 = 毎秒変化させたい音量 * (秒/1f) <= 1fあたりの秒数
-        float gainPerFrame = AttachBGMSourceClip.GainPerSecond * Time.deltaTime;
-        if (AttachBGMSource.volume > 0) AttachBGMSource.volume += gainPerFrame;
-        // 終了
-        else isFadeOut = false; isPlaying = false; AttachBGMSource.Stop();
+        float nextVolume = currentVolume + gainPerFrame;
+
+        if (Mathf.Abs(nextVolume - startVolume) < Mathf.Abs(AttachBGMSourceClip.Distance)) {
+            AttachBGMSource.volume = nextVolume;
+        } else {
+            isFading = false;
+            if (AttachBGMSource.isPlaying && clip.Destination <= 0) AttachBGMSource.Stop();
+        }
     }
 
     /// <summary>
@@ -160,15 +160,13 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
         AttachBGMSource = this.gameObject.AddComponent<AudioSource>();
         AttachBGMSourceSub = this.gameObject.AddComponent<AudioSource>();
         AttachSESource = this.gameObject.AddComponent<AudioSource>();
+        AttachBGMSource.volume = 0;
+        AttachBGMSourceSub.volume = 0;
+        AttachSESource.volume = 0;
     }
 
     // Update is called once per frame
     void Update () {
-        if (isFadeIn) {
-            fadeIn();
-        }
-        if (isFadeOut) {
-            fadeOut();
-        }
+        if (isFading) fade();
     }
 }
