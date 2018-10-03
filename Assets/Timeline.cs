@@ -112,7 +112,7 @@ namespace Timeline {
                             string bgmId = line[1];
                             float loopStart = float.Parse(line.Length > 2 ? line[2] : "0");
                             float loopEnd = float.Parse(line.Length > 3 ? line[3] : "0");
-                            AdvancedAudioClip clip = AudioManager.Instance.getBGM(bgmId);
+                            AdvancedAudioClip clip = AudioManager.Instance.getClip(bgmId);
                             clip.SetLoop(loopStart, loopEnd);
                             GetBGMs().Add(bgmId, clip);
                             break;
@@ -138,6 +138,8 @@ namespace Timeline {
             "narration",
             // bgm
             "bgm",
+            // se
+            "se",
             // 何もしないで先おくり
             "nothing",
         };
@@ -201,9 +203,16 @@ namespace Timeline {
                         // bgm, bgm/op, 1000, 1, true
                         string bgmId = line[1];
                         int fadeDuration = int.Parse(line[2]);
-                        float volume = float.Parse(line[3]);
+                        float bgmVolume = float.Parse(line[3]);
                         bool loop = line.Length > 4 ? bool.Parse(line[4]) : false;
-                        AudioManager.Instance.fadeBGM(bgmId, fadeDuration, volume, loop);
+                        AudioManager.Instance.fadeBGM(bgmId, fadeDuration, bgmVolume, loop);
+                        this.next();
+                        break;
+                    case "se":
+                        // se, SE/se_bat_hit,0.5
+                        string seId = line[1];
+                        float seVolume = line.Length > 2 ? float.Parse(line[2]) : 1f;
+                        AudioManager.Instance.playSE(seId, seVolume);
                         this.next();
                         break;
                     case "nothing":

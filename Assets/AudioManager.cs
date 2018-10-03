@@ -17,17 +17,32 @@ public class AdvancedAudioClip {
     float duration; // fadeにかける時間
     float gainPerSecond; // volume/秒
     float distance; // 総変化音量
+    /// <summary>
+    /// AdvancedAudioClipのコンストラクタ
+    /// </summary>
+    /// <param name="clip">AudioClip</param>
     public AdvancedAudioClip(AudioClip clip) {
         instance = clip;
         // デフォルトでは曲頭から曲末までループする
         this.SetLoop(0f, clip.length);
     }
+    /// <summary>
+    /// headに書かれた情報を元にループの設定をする
+    /// </summary>
+    /// <param name="loopStart">ループの開始地点</param>
+    /// <param name="loopEnd">ループの終了地点</param>
     public void SetLoop(float loopStart, float loopEnd) {
         this.loopStart = loopStart / 1000f;
         if (loopEnd == 0) loopEnd = this.instance.length * 1000;
         this.loopEnd = loopEnd / 1000f;
         this.loopTime = this.loopEnd - this.loopStart;
     }
+    /// <summary>
+    /// fadein fadeoutの設定
+    /// </summary>
+    /// <param name="volume">最終的なボリューム値 0 ~ 1 </param>
+    /// <param name="duration">フェードにかかる時間 ms</param>
+    /// <param name="currentVolume">現在のボリューム</param>
     public void SetFadeMeta(float volume, float duration, float currentVolume) {
         // volume まで durationずつ音量を変化させたい
         this.destination = volume;
@@ -37,6 +52,9 @@ public class AdvancedAudioClip {
         this.distance = volume - currentVolume;
     }
 
+    /// <summary>
+    /// AudioClip 本体
+    /// </summary>
     public AudioClip Instance
     {
         get
@@ -93,33 +111,47 @@ public class AdvancedAudioClip {
 /// BGMとSEの管理をするマネージャ。シングルトン。
 /// </summary>
 public class AudioManager : SingletonMonoBehaviour<AudioManager> {
-    private float volume = 1;
-    // BGM用 ループ用 SE用
-    private List<AudioSource> AttachBGMSourceList, AttachSESourceList;
-    // 全データ
-    private Dictionary<string, AdvancedAudioClip> _bgmDic, _seDic;
-    // 再生しているデータ
-    private Dictionary<string, AudioSource> playingDic;
-    /// <summary>
-    /// ループ管理用
-    /// {bgmId: nextLoopTime}
-    /// </summary>
-    private Dictionary<string, float> loopData;
-    public AdvancedAudioClip getBGM(string path) {
-        return _bgmDic[path];
-    }
-    private string nextBgmId;
-
+    // ループ再生用のprefix
     private static string LOOP_PREFIX = "LOOP___";
-    AudioSource GetBGMSource(string bgmId) {
-        AudioSource source;
-        // 同一音源が再生中の場合は再生しているAudioSourceを取得, そうでない場合は、再生してないAudioSourceを取得
-        if (playingDic.TryGetValue(bgmId, out source) == false) {
-            foreach(AudioSource s in AttachBGMSourceList) {
+    // BGM再生用のAudioSourceのリストとSE再生用のAudioSource
+    private List<AudioSource> AttachSourceList;
+    // 全データ
+    private Dictionary<string, AdvancedAudioClip> AudioDic;
+    // 現在再生しているデータ
+    private Dictionary<string, AudioSource> playingDic;
+    // ループ管理用 {bgmId: nextLoopTime}
+    private Dictionary<string, float> loopData;
+    /// <summary>
+    /// idをkeyにAdvancedAudioClipをゲットする
+    /// </summary>
+    /// <param name="id">取得したいAdvancedAudioClipのID = Resources/Audio以下のパス</param>
+    /// <returns></returns>
+    public AdvancedAudioClip getClip(string id) {
+        return AudioDic[id];
+    }
+    AudioSource GetSource(string id, bool duplicate = false) {
+        AudioSource source = null;
+        // seの場合はおんなじ音源を同時に鳴らす可能性はあるので
+        // bgmの場合のみ同一音源が再生中の場合は再生しているAudioSourceを取得
+        // そうでない場合は、再生してないAudioSourceを取得
+
+        // 重複を許可しない場合に限り再生中の音源がある場合はそれを取得
+        if (duplicate == false) playingDic.TryGetValue(id, out source);
+        if (source == null) {
+            // アタッチされているAudioSourceで使用されていないのがあればそれを使い回す
+            foreach(AudioSource s in AttachSourceList) {
                 // ループ用音源の設定は、再生前のオリジナルの{s}が存在するので注意
-                if (s.isPlaying == false && s.clip != getBGM(bgmId.Replace(LOOP_PREFIX, "")).Instance) {
+                if (s.isPlaying == false && s.clip != getClip(id.Replace(LOOP_PREFIX, "")).Instance) {
                     source = s;
-                    playingDic[bgmId] = source;
+                    if (duplicate == false) {
+                        // 別のキーで同一sourceを保持してる場合があるので,そのキーを削除
+                        foreach(string key in playingDic.Keys) {
+                            if (playingDic[key] == source) {
+                                playingDic.Remove(key);
+                                break;
+                            }
+                        }
+                    }
                     break;
                 }
             }
@@ -127,21 +159,14 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
         // 空いてるAudioSourceがなければ追加する
         if (source == null) {
             source = this.gameObject.AddComponent<AudioSource>();
-            AttachBGMSourceList.Add(source);
-            playingDic[bgmId] = source;
+            AttachSourceList.Add(source);
         }
+        // 重複を許可しない場合は重複チェックをしたいので管理用のdicに登録
+        if(duplicate == false && playingDic.ContainsKey(id) == false) playingDic[id] = source;
         // ボリュームは0にしておく
         if (source.isPlaying == false) source.volume = 0;
         source.playOnAwake = false;
         return source;
-    }
-    void fadeOutBGMAll(float duration=5000) {
-        List<string> playingDicKeys = new List<string>(playingDic.Keys);
-        foreach(string bgmId in playingDicKeys) {
-            AudioSource source = GetBGMSource(bgmId);
-            AdvancedAudioClip clip = this.getBGM(bgmId);
-            clip.SetFadeMeta(volume, duration, source.volume);
-        }
     }
 
     /// <summary>
@@ -152,10 +177,8 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
     /// <param name="loop">ループの可否</param>
     /// </summary>
     public void fadeBGM(string bgmId, float duration, float volume, bool loop=false) {
-        // 再生中のものがあったらフェードアウト
-        // fadeOutBGMAll();
-        AudioSource source = GetBGMSource(bgmId);
-        AdvancedAudioClip clip = this.getBGM(bgmId);
+        AudioSource source = GetSource(bgmId);
+        AdvancedAudioClip clip = this.getClip(bgmId);
         clip.SetFadeMeta(volume, duration, source.volume);
         if (source.clip != clip.Instance) source.clip = clip.Instance;
         if (loop) prepareLoop(bgmId);
@@ -163,13 +186,27 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
             // 変化量が正であればfadeinなので再生を開始
             if (clip.Distance > 0) source.Play();
         }
+        // フェードアウトして再生を終了する
+        if(volume <= 0) {
+            this.OnPlayEnd(source, () => {
+                Debug.LogFormat("Playing End: {0} {1}", bgmId, source.clip.name);
+                playingDic.Remove(bgmId);
+                string loopId = LOOP_PREFIX + bgmId;
+                // ループ用
+                if (playingDic.TryGetValue(loopId, out source)) {
+                    source.Stop();
+                    playingDic.Remove(loopId);
+                }
+                if (loopData.ContainsKey(bgmId)) loopData.Remove(bgmId);
+            });
+        }
     }
     void fade() {
         List<string> playingBGMKeys = new List<string>(playingDic.Keys);
         foreach(string bgmId in playingBGMKeys) {
             string originalId = bgmId.Replace(LOOP_PREFIX, "");
             string loopId = LOOP_PREFIX + originalId;
-            AdvancedAudioClip clip = getBGM(originalId);
+            AdvancedAudioClip clip = getClip(originalId);
             AudioSource source = playingDic[originalId];
             float startVolume = clip.Destination - clip.Distance;
             float currentVolume = source.volume;
@@ -187,13 +224,6 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
                 // source.volume = nextVolume;
                 if (source.isPlaying && clip.Destination <= 0) {
                     source.Stop();
-                    playingDic.Remove(bgmId);
-                    // ループ用
-                    if (playingDic.TryGetValue(loopId, out source)) {
-                        source.Stop();
-                        playingDic.Remove(loopId);
-                    }
-                    if (loopData.ContainsKey(originalId)) loopData.Remove(originalId);
                 }
             }
         }
@@ -204,14 +234,14 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
     /// </summary>
     /// <param name="bgmId">再生するファイルID</param>
     void prepareLoop(string bgmId) {
-        AudioSource loopSource = GetBGMSource(LOOP_PREFIX + bgmId);
-        AdvancedAudioClip clip = getBGM(bgmId);
+        AudioSource loopSource = GetSource(LOOP_PREFIX + bgmId);
+        AdvancedAudioClip clip = getClip(bgmId);
         loopSource.clip = clip.Instance;
         // スケジュールがずれないようにすでにスケジュールされている場合は変更しないようにする
         if (loopData.ContainsKey(bgmId) == false) {
             // オリジナルを止める時間を設定
-            AudioSource originalSource = GetBGMSource(bgmId);
-            float currentTime = (float)AudioSettings.dspTime;
+            AudioSource originalSource = GetSource(bgmId);
+            float currentTime = (float)AudioSettings.dspTime + 1f;
             originalSource.PlayScheduled(currentTime);
             // まだスケジュールされていない場合は規定の時間でスケジュールする
             float nextLoopTime = clip.LoopEnd + currentTime;
@@ -230,7 +260,7 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
                 float nextLoopTime = loopData[originalId];
                 // 1秒前からスケジュールしておく
                 if (currentTime + 1f > nextLoopTime) {
-                    AdvancedAudioClip clip = getBGM(originalId);
+                    AdvancedAudioClip clip = getClip(originalId);
                     AudioSource loopSource = playingDic[bgmId];
                     // ループ用のが再生されている場合
                     if (loopSource.isPlaying) {
@@ -256,29 +286,54 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
     /// <summary>
     /// SEの再生
     /// </summary>
-    /// <param name="filename">再生したいSEのファイル名</param>
-    /// <param name="volume">音量</param>
-    public void playSE(string filename, int volume) {}
+    /// <param name="seId">再生したいSEのID</param>
+    public void playSE(string seId, float volume) {
+        // SEは同時に同じ音源を再生可能
+        AudioSource source = GetSource(seId, true);
+        AdvancedAudioClip clip = this.getClip(seId);
+        if (source.clip != clip.Instance) source.clip = clip.Instance;
+        if (source.isPlaying == false) {
+            source.volume = volume;
+            source.Play();
+            this.OnPlayEnd(source, () => {
+                Debug.Log("このっはげーーー");
+                playingDic.Remove(seId);
+                AttachSourceList.Remove(source);
+                Destroy(source);
+            });
+        }
+    }
+
+    void OnPlayEnd(AudioSource source, System.Action callback) {
+        StartCoroutine(OnPlayEndHandler(source, callback));
+    }
+    private IEnumerator OnPlayEndHandler (AudioSource source, System.Action callback) {
+        while (true) {
+            yield return new WaitForFixedUpdate();
+            if (source.isPlaying == false) {
+                callback();
+                break;
+            }
+        }
+    }
     // Use this for initialization
     void Start () {
         playingDic = new Dictionary<string, AudioSource>();
-        AttachBGMSourceList = new List<AudioSource>();
-        AttachSESourceList = new List<AudioSource>();
+        AttachSourceList = new List<AudioSource>();
         loopData = new Dictionary<string, float>();
         // リソース読み込み
-        _bgmDic = new Dictionary<string, AdvancedAudioClip>();
-        _seDic = new Dictionary<string, AdvancedAudioClip>();
+        AudioDic = new Dictionary<string, AdvancedAudioClip>();
         object[] bgmList = Resources.LoadAll("Audio/BGM", typeof(AudioClip));
         object[] seList = Resources.LoadAll("Audio/SE", typeof(AudioClip));
 
         // loopの設定とかしたいのでAudioClipクラス拡張した方が良いかも
         // http://tsubakit1.hateblo.jp/entry/20131201/1385909300
         foreach (AudioClip bgm in bgmList) {
-            _bgmDic[string.Format("BGM/{0}", bgm.name)] = new AdvancedAudioClip(bgm);
+            AudioDic[string.Format("BGM/{0}", bgm.name)] = new AdvancedAudioClip(bgm);
         }
         foreach (AudioClip se in seList) {
             AdvancedAudioClip clip = new AdvancedAudioClip(se);
-            _seDic[string.Format("SE/{0}", se.name)] = new AdvancedAudioClip(se);
+            AudioDic[string.Format("SE/{0}", se.name)] = new AdvancedAudioClip(se);
         }
         // シーンをまたいでも削除されないようにする
         DontDestroyOnLoad (this.gameObject);

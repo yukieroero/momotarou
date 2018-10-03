@@ -31,6 +31,11 @@ narration,hide
 
 say,right,oldman,わしは、山へしばかりにいってくるぞ,1
 say,left,oldwoman,わたしは、川へせんたくにいってきます,1
+se,SE/se_bat_hit,0.5
+nothing@1000
+se,SE/se_bat_hit,1
+nothing@400
+se,SE/se_bat_hit,0.7
 
 narration,show,二人はでかけていきました。\r\nおばあさんが川でせんたくをしていると、大きなももが、どんぶらこ、どんぶらことながれてきました。
 narration,hide
@@ -44,9 +49,9 @@ say,left,oldwoman,まあ、大きなももだこと。おじいさんにもっ�
 narration,show,おばあさんは、よろこんでももをひろってかえりました。
 narration,hide
 
-scene,room,f2f,background/room
-
 bgm,BGM/op,0,0,True
+
+scene,room,f2f,background/room
 
 bgm,BGM/bgm_shopping_street,4000,1,True
 
