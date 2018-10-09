@@ -65,7 +65,7 @@ public class NarratorManager : SingletonMonoBehaviour<NarratorManager> {
         RectTransform narrationTextRect = addFillRect(narrationText);
         Text text = narrationText.AddComponent<Text>();
         text.alignment = TextAnchor.MiddleCenter;
-        Timeline.TimelineHelper.setTextStyle (text, 20, Color.white, Resources.Load<Font> ("fonts/hiragino"));
+        Timeline.TimelineHelper.setTextStyle (text, 30, Color.white, Resources.Load<Font> ("fonts/hiragino"));
         narrationText.transform.SetParent(gameObject.transform);
         Timeline.TimelineHelper.setRectPosition (narrationTextRect, 0, 0, 0, 0);
 
