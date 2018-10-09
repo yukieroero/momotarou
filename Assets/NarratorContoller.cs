@@ -6,6 +6,7 @@ using Timeline;
 
 public class NarratorContoller : MonoBehaviour {
 
+    public bool isFading;
     private bool fadingIn;
     private bool fadingOut;
     private GameObject narrator;
@@ -40,18 +41,46 @@ public class NarratorContoller : MonoBehaviour {
         if (newOpacity <= 0f) {
             fadingIn = false;
             fadingOut = false;
-            this.gameObject.SetActive(false);
         }
         narrationMask.alpha = newOpacity;
     }
-    public void show (){
+    public void show(){
         this.gameObject.SetActive(true);
+        isFading = true;
         fadingIn = true;
         fadingOut = !fadingIn;
+        StartCoroutine(OnShown(()=>{
+            Debug.Log("あらわれた");
+            isFading = false;
+        }));
+    }
+    IEnumerator OnShown (System.Action callback) {
+        while(true) {
+            yield return new WaitForFixedUpdate();
+            if (narrationMask.alpha >= targetOpacity) {
+                callback();
+                break;
+            }
+        }
     }
     public void hide (){
+        isFading = true;
         fadingOut = true;
         fadingIn = !fadingOut;
+        StartCoroutine(OnHiden(()=>{
+            Debug.Log("きえた");
+            isFading = false;
+            this.gameObject.SetActive(false);
+        }));
+    }
+    IEnumerator OnHiden (System.Action callback) {
+        while(true) {
+            yield return new WaitForFixedUpdate();
+            if (narrationMask.alpha <= 0f) {
+                callback();
+                break;
+            }
+        }
     }
     // Update is called once per frame
     void Update () {

@@ -25,61 +25,6 @@ namespace Timeline {
         }
     }
 
-    public class Narrator {
-        public GameObject GameObject;
-        public NarratorContoller contoller;
-        private GameObject NarrationText;
-        private RectTransform narrationRect;
-        public Narrator () {
-            GameObject narration = new GameObject ();
-            narration.name = "Narration";
-            narrationRect = narration.AddComponent<RectTransform> ();
-            narration.AddComponent<Canvas>();
-            narration.AddComponent<CanvasGroup>().alpha = 0;
-            contoller = narration.AddComponent<NarratorContoller> ();
-
-            GameObject background = new GameObject();
-            background.name = "background";
-            RectTransform backgroundRect = background.AddComponent<RectTransform> ();
-            backgroundRect.anchorMin = Vector2.zero;
-            backgroundRect.anchorMax = Vector2.one;
-            backgroundRect.pivot = new Vector2 (0.5f, 0.5f);
-            backgroundRect.localScale = Vector3.one;
-            TimelineHelper.setRectPosition (backgroundRect, 0, 0, 0, 0);
-            background.AddComponent<Image> ().color = new Color (0, 0, 0, 1f);
-            background.transform.SetParent(narration.transform);
-
-            GameObject narrationText = new GameObject ();
-            narrationText.name = "Text";
-            RectTransform narrationTextRect = narrationText.AddComponent<RectTransform> ();
-            narrationTextRect.anchorMin = Vector2.zero;
-            narrationTextRect.anchorMax = Vector2.one;
-            narrationTextRect.pivot = new Vector2 (0.5f, 0.5f);
-            TimelineHelper.setRectPosition (narrationTextRect, 0, 0, 0, 0);
-            Text text = narrationText.AddComponent<Text> ();
-            text.alignment = TextAnchor.MiddleCenter;
-            TimelineHelper.setTextStyle (text, 30, Color.white, Resources.Load<Font> ("fonts/hiragino"));
-            narrationText.transform.SetParent (narration.transform);
-            narration.SetActive (false);
-            this.GameObject = narration;
-            this.NarrationText = narrationText;
-        }
-        public void set (string text) {
-            this.NarrationText.GetComponent<Text> ().text = text.Replace ("\\r\\n", "\r\n");
-            this.GameObject.SetActive (true);
-            this.GameObject.GetComponent<Canvas> ().overrideSorting = true;
-            narrationRect.anchorMin = Vector2.zero;
-            narrationRect.anchorMax = Vector2.one;
-            narrationRect.pivot = new Vector2 (0.5f, 0.5f);
-            narrationRect.localScale = Vector3.one;
-        }
-        public void show () {
-            contoller.show();
-        }
-        public void hide () {
-            contoller.hide();
-        }
-    }
 
     public class HeadHandler {
         private Dictionary<string, Person> persons = new Dictionary<string, Person>();
@@ -191,13 +136,23 @@ namespace Timeline {
                     case "narration":
                         // narration,show,昔々あるところにおじいさんとおばあさんが暮らしておりました。
                         if (line[1] == "show") {
+                            isNothing = true;
                             string narration = line[2];
-                            kamishibai.setNarration(narration);
-                            kamishibai.showNarration();
+                            NarratorManager.Instance.show(narration, 200f);
+                            kamishibai.sleep(() => {
+                                isNothing = false;
+                                this.incrementIndex();
+                                Debug.Log("nothing end");
+                            }, waitTime: 200f);
                         } else {
-                            kamishibai.hideNarration();
+                            isNothing = true;
+                            NarratorManager.Instance.hide(200f);
+                            kamishibai.sleep(() => {
+                                isNothing = false;
+                                this.next();
+                                Debug.Log("nothing end");
+                            }, 200f);
                         }
-                        this.incrementIndex ();
                         break;
                     case "bgm":
                         // bgm, bgm/op, 1000, 1, true
@@ -220,11 +175,11 @@ namespace Timeline {
                         Debug.Log("nothing start");
                         float waitTime = float.Parse(line[0].Split('@')[1]);
                         isNothing = true;
-                        kamishibai.sleep(waitTime, () => {
+                        kamishibai.sleep(() => {
                             isNothing = false;
                             this.next();
                             Debug.Log("nothing end");
-                        });
+                        }, waitTime:waitTime);
                         break;
                     default:
                         break;

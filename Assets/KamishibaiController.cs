@@ -19,7 +19,6 @@ public class KamishibaiController : MonoBehaviour {
 
     private Image background;
     private Text title;
-    private Narrator narration;
     private Dictionary<string, Person> previousActor = new Dictionary<string, Person>(){
         {"left", null},
         {"right", null},
@@ -56,16 +55,6 @@ public class KamishibaiController : MonoBehaviour {
     public void setBackground (string path) {
         title.text = "";
         background.sprite = Resources.Load<Sprite>(path);
-    }
-    // narrationを表示
-    public void setNarration (string text) {
-        narration.set(text);
-    }
-    public void showNarration () {
-        narration.show();
-    }
-    public void hideNarration() {
-        narration.hide();
     }
     // タイトルの表示
     public void setTitle (string value) {
@@ -169,17 +158,28 @@ public class KamishibaiController : MonoBehaviour {
     /// <summary>
     /// 渡された処理を指定時間後に実行する
     /// </summary>
-    /// <param name="waitTime">遅延時間[ミリ秒]</param>
     /// <param name="event">実行したい処理</param>
+    /// <param name="waitTime">遅延時間[ミリ秒]</param>
+    /// <param name="judge">判定用の関数</param>
     /// <returns></returns>
-    public void sleep(float waitTime, System.Action action) {
-
-        StartCoroutine(_sleep(waitTime, action));
+    public void sleep(System.Action action, float waitTime=0, System.Func<bool> judge=null) {
+        StartCoroutine(_sleep(action, waitTime, judge));
     }
-    private IEnumerator _sleep(float waitTime, System.Action action)
+    private IEnumerator _sleep(System.Action action, float waitTime, System.Func<bool> judge)
     {
-        yield return new WaitForSeconds(waitTime / 1000f);
-        action();
+        while (true) {
+            if (waitTime > 0) {
+                yield return new WaitForSeconds(waitTime / 1000f);
+                action();
+                break;
+            } else if (judge != null) {
+                yield return new WaitForFixedUpdate();
+                if (judge() == true) {
+                    action();
+                    break;
+                }
+            }
+        }
     }
 
 
@@ -196,8 +196,10 @@ public class KamishibaiController : MonoBehaviour {
         background = GameObject.Find("/Canvas/Background").GetComponent<Image>();
         title = GameObject.Find("/Canvas/Title").GetComponent<Text>();
 
-        narration = new Narrator();
-        narration.GameObject.transform.SetParent(this.gameObject.transform);
+        // narration = new Narrator();
+        // narration.GameObject.transform.SetParent(this.gameObject.transform);
+        // narration managerをセット
+        new GameObject().AddComponent<NarratorManager>();
 
         reader = new TimelineReader(timeline);
         timelineHead = reader.GetTimeLineHead();
@@ -210,6 +212,13 @@ public class KamishibaiController : MonoBehaviour {
     // Update is called once per frame
     void Update () {
         if (bodyHandler.GetIndex() == 0) bodyHandler.play();
+        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Ended) {
+            if (bodyHandler.GetIndex() < bodyHandler.GetLimit()) {
+                bodyHandler.play();
+            } else {
+                setTitle("おしまい");
+            }
+        }
         if (Input.GetKeyUp(KeyCode.Return)) {
             if (bodyHandler.GetIndex() < bodyHandler.GetLimit()) {
                 bodyHandler.play();

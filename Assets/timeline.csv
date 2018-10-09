@@ -16,6 +16,8 @@ bgm,BGM/op
 [body]
 # シーン定義
 scene,inaka,f2f,background/inaka
+narration,show,むかしむかし、あるところに、おじいさんとおばあさんがくらしておりました。\r\nある日のこと。
+narration,hide
 
 # bgm再生
 # bgm, source, fadeDuration(ms), volume(0<=x<=1), loop(bool)
