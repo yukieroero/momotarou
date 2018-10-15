@@ -1,11 +1,54 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Timeline {
 
+    /// <summary>
+    /// 対象GameObjectを範囲いっぱいに広げる
+    /// </summary>
+    /// <param name="target">対象GameObject</param>
+    /// <returns>対象GameObjectにアタッチしたRectTransform</returns>
     public static class TimelineHelper {
+        public static void AddParam(object target, Hashtable parameters) {
+            object original = target;
+            foreach(string key in parameters.Keys) {
+                target = original;
+                PropertyInfo pi = null;
+                // .でネストの深いところを変更する場合の対応
+                string[] nest = key.Split('.');
+                for (int i=0; i<nest.Length; i++) {
+                    // propertyを変更してくれるPropertyInfo
+                    pi = target.GetType().GetProperty(nest[i]);
+                    // 最後のループではtargetの更新はなし
+                    if (nest.Length > 1 && pi != null && i < nest.Length - 1){
+                        target = pi.GetValue(target, null);
+                        continue;
+                    }
+                }
+                if (pi != null) {
+                    System.Type expect = pi.PropertyType;
+                    System.Type actually = parameters[key].GetType();
+                    if (expect == actually) {
+                        pi.SetValue(target, parameters[key], null);
+                    } else Debug.LogErrorFormat("Type error of {0}: Expected {1} but {2}", key, expect, actually);
+                } else Debug.LogErrorFormat("No such property: {0}", key);
+            }
+        }
+        public static RectTransform addFillRect(GameObject target) {
+            RectTransform fillRect = target.GetComponent<RectTransform>();
+            if (fillRect == null) {
+                fillRect = target.AddComponent<RectTransform>();
+            }
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.pivot = new Vector2 (0.5f, 0.5f);
+            fillRect.localScale = Vector3.one;
+            return fillRect;
+        }
         public static Color ChangeColor (Color current, float r = float.NaN, float g = float.NaN, float b = float.NaN, float a = float.NaN) {
             Color newColor = current;
             if (!float.IsNaN (r)) newColor.r = r;
@@ -85,6 +128,12 @@ namespace Timeline {
             "bgm",
             // se
             "se",
+            // 選択ダイアログ
+            "select",
+            // ラベル
+            "label",
+            // goto
+            "goto",
             // 何もしないで先おくり
             "nothing",
         };
@@ -108,9 +157,10 @@ namespace Timeline {
             limit = datas.Count;
             isNothing = false;
         }
-        public void play () {
+        public void play (string[] line=null) {
             if (isNothing) return;
-            string[] line = datas[GetIndex ()];
+            // 引数lineを与えるとそれを実行できる
+            if (line == null) line = datas[GetIndex ()];
             string command = line[0].Split('@')[0];
             Debug.LogFormat("command: {0}", command);
             if (bodyCommandList.Contains(command)) {
@@ -170,6 +220,40 @@ namespace Timeline {
                         AudioManager.Instance.playSE(seId, seVolume);
                         this.next();
                         break;
+                    case "select":
+                        // select,このあとどうする？,label_1_end
+                        Select select = SelectManager.Instance.GetSelect(line[2]);
+                        // 未選択の個数
+                        if (select.Count(available:true) > 0) {
+                            SelectManager.Instance.Show(select);
+                            isNothing = true;
+                            kamishibai.sleep(()=>{
+                                // index値を更新
+                                index = kamishibai.TimelineReader.GetLabelIndex(select.Selected.Key);
+                                isNothing = false;
+                                Debug.Log("nothing end");
+                                this.play();
+                            }, descrimination:() => {
+                                return select.Selected != null;
+                            });
+                        } else {
+                            this.play(line: new string[] {
+                                "goto",
+                                string.Format("{0}", line[2]),
+                            });
+                        }
+                        break;
+                    case "label":
+                        this.next();
+                        break;
+                    case "goto":
+                        // goto,label_name
+                        string goTo = line[1];
+                        int gotoIndex = kamishibai.TimelineReader.GetLabelIndex(goTo);
+                        // 0だと失敗なので無視
+                        if (gotoIndex > 0) this.index = gotoIndex;
+                        this.play();
+                        break;
                     case "nothing":
                         // nothing@4000
                         Debug.Log("nothing start");
@@ -196,6 +280,10 @@ namespace Timeline {
         }
         public void incrementIndex () {
             index = index + 1;
+        }
+        public string[] GetNextLine () {
+            string[] nextLine = datas[GetIndex() + 1];
+            return nextLine;
         }
     }
 
@@ -373,14 +461,19 @@ namespace Timeline {
         private TextAsset csvFile;
         private List<string[]> timeLineBody = new List<string[]> ();
         private List<string[]> timeLineHead = new List<string[]> ();
+        private Dictionary<string, int> labelMap = new Dictionary<string, int>();
         private int height = 0;
-        private Dictionary<string, string> identifier = new Dictionary<string, string> () { { "header", "[head]" }, { "body", "[body]" },
+        private Dictionary<string, string> identifier = new Dictionary<string, string> () {
+            { "header", "[head]" },
+            { "body", "[body]" },
+            { "label", "label" },
         };
         public TimelineReader (TextAsset csvFile) {
             this.csvFile = csvFile;
             StringReader reader = new StringReader (csvFile.text);
             bool header = false;
             bool body = false;
+            int bodyIndex = 0;
             while (reader.Peek () > -1) {
                 string line = reader.ReadLine ();
                 if (line == identifier["header"]) {
@@ -389,9 +482,15 @@ namespace Timeline {
                 } else if (line == identifier["body"]) {
                     header = false;
                     body = true;
+                // 空白は無視する
                 } else if (line.Length > 0) {
-                    if (header) timeLineHead.Add (line.Split (',')); // リストに入れる
-                    else if (body) timeLineBody.Add (line.Split (',')); // リストに入れる
+                    string[] splitted = line.Split(',');
+                    if (header) timeLineHead.Add(splitted); // リストに入れる
+                    else if (body) timeLineBody.Add (splitted); // リストに入れる
+                    // labelMapに登録する
+                    // label,label_name
+                    if (splitted[0] == identifier["label"]) labelMap[splitted[1]] = bodyIndex;
+                    if (body) bodyIndex += 1;
                 }
                 height++; // 行数加算
             }
@@ -403,6 +502,10 @@ namespace Timeline {
 
         public List<string[]> GetTimeLineHead () {
             return timeLineHead;
+        }
+        public int GetLabelIndex(string label) {
+            if (labelMap.ContainsKey(label)) return labelMap[label];
+            return 0;
         }
     }
 }

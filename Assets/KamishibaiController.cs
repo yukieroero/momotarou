@@ -33,6 +33,11 @@ public class KamishibaiController : MonoBehaviour {
             content.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, ContentHeight);
         }
     }
+    public TimelineReader TimelineReader {
+        get {
+            return this.reader;
+        }
+    }
     public HeadHandler GetHeadHandler()
     {
         return headHandler;
@@ -104,7 +109,7 @@ public class KamishibaiController : MonoBehaviour {
             Actor.SetActive(true);
 
             ActorRectTrans.anchoredPosition = anchoredPosition;
-            ActorRectTrans.localScale = new Vector3(5f, 5f, 1f);
+            ActorRectTrans.localScale = new Vector3(3f, 3f, 1f);
             ActorController actorController = Actor.AddComponent<ActorController>();
         }
         // 今回表示するpositionに別にactorが立っている場合は削除
@@ -160,29 +165,27 @@ public class KamishibaiController : MonoBehaviour {
     /// </summary>
     /// <param name="event">実行したい処理</param>
     /// <param name="waitTime">遅延時間[ミリ秒]</param>
-    /// <param name="judge">判定用の関数</param>
+    /// <param name="descrimination">判定用の関数</param>
     /// <returns></returns>
-    public void sleep(System.Action action, float waitTime=0, System.Func<bool> judge=null) {
-        StartCoroutine(_sleep(action, waitTime, judge));
+    public void sleep(System.Action action, float waitTime=0, System.Func<bool> descrimination=null) {
+        StartCoroutine(_sleep(action, waitTime, descrimination));
     }
-    private IEnumerator _sleep(System.Action action, float waitTime, System.Func<bool> judge)
+    private IEnumerator _sleep(System.Action action, float waitTime, System.Func<bool> descrimination)
     {
         while (true) {
             if (waitTime > 0) {
                 yield return new WaitForSeconds(waitTime / 1000f);
                 action();
                 break;
-            } else if (judge != null) {
+            } else if (descrimination != null) {
                 yield return new WaitForFixedUpdate();
-                if (judge() == true) {
+                if (descrimination() == true) {
                     action();
                     break;
                 }
             }
         }
     }
-
-
 
     // Use this for initialization
     void Awake () {
@@ -206,6 +209,11 @@ public class KamishibaiController : MonoBehaviour {
         timelineBody = reader.GetTimeLineBody();
         headHandler = new HeadHandler(this, timelineHead);
         bodyHandler = new BodyHandler(this, timelineBody);
+
+        // 選択肢を管理する
+        new GameObject().AddComponent<SelectManager>();
+        SelectManager.Instance.Load(timelineBody);
+
         Debug.Log("end of kamishibiai start");
     }
 

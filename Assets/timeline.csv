@@ -19,6 +19,32 @@ scene,inaka,f2f,background/inaka
 narration,show,むかしむかし、あるところに、おじいさんとおばあさんがくらしておりました。\r\nある日のこと。
 narration,hide
 
+label,label_select_01_begin
+
+select,このあとどうする？,label_select_01_end
+select_option,ねる,label_select_01_01
+select_option,がんばる,label_select_01_02
+select_option,もう一度悩む,label_select_01_03
+
+# -----------------------------------------------------------------------------
+label,label_select_01_01
+say,left,oldwoman,おじいさん。さっそくねましょう,1
+goto,label_select_01_end
+
+# -----------------------------------------------------------------------------
+label,label_select_01_02
+say,left,oldwoman,おじいさん。さっそくがんばっていきまっしょい,1
+goto,label_select_01_end
+
+# -----------------------------------------------------------------------------
+label,label_select_01_03
+say,left,oldwoman,おじいさん。悩みましょう。,1
+goto,label_select_01_begin
+
+# -----------------------------------------------------------------------------
+
+label,label_select_01_end
+
 # bgm再生
 # bgm, source, fadeDuration(ms), volume(0<=x<=1), loop(bool)
 bgm,BGM/bgm_shopping_street,4000,1,True

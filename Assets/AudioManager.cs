@@ -121,7 +121,6 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
     private Dictionary<string, AudioSource> playingDic;
     // ループ管理用 {bgmId: nextLoopTime}
     private Dictionary<string, float> loopData;
-    private Animation anim;
     /// <summary>
     /// idをkeyにAdvancedAudioClipをゲットする
     /// </summary>
@@ -337,8 +336,6 @@ public class AudioManager : SingletonMonoBehaviour<AudioManager> {
             AudioDic[string.Format("SE/{0}", se.name)] = new AdvancedAudioClip(se);
         }
 
-        // fadeのためにAnimatorを用意する
-        anim = gameObject.AddComponent<Animation>();
         // シーンをまたいでも削除されないようにする
         DontDestroyOnLoad (this.gameObject);
     }

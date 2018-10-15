@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Timeline;
 
 public class NarratorManager : SingletonMonoBehaviour<NarratorManager> {
 
@@ -10,22 +11,6 @@ public class NarratorManager : SingletonMonoBehaviour<NarratorManager> {
     float duration; // 何msでふぇーどさせるか
     GameObject background;
 
-    /// <summary>
-    /// 対象GameObjectを範囲いっぱいに広げる
-    /// </summary>
-    /// <param name="target">対象GameObject</param>
-    /// <returns>対象GameObjectにアタッチしたRectTransform</returns>
-    RectTransform addFillRect(GameObject target) {
-        RectTransform fillRect = target.GetComponent<RectTransform>();
-        if (fillRect == null) {
-            fillRect = target.AddComponent<RectTransform>();
-        }
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.pivot = new Vector2 (0.5f, 0.5f);
-        fillRect.localScale = Vector3.one;
-        return fillRect;
-    }
     /// <summary>
     /// GameObjectを作成する
     /// </summary>
@@ -43,18 +28,19 @@ public class NarratorManager : SingletonMonoBehaviour<NarratorManager> {
         // NarrationManagerの初期化
         gameObject.name = "NarratorManager";
         Canvas canvas = gameObject.AddComponent<Canvas>();
+        canvas.planeDistance = 10;
         canvas.overrideSorting = true;
         canvas.sortingOrder = 1;
         canvas.renderMode = RenderMode.ScreenSpaceCamera;
         canvas.worldCamera = GameObject.Find("/Main Camera").GetComponent<Camera>();
-        RectTransform rectTransform = addFillRect(gameObject);
+        RectTransform rectTransform = TimelineHelper.addFillRect(gameObject);
         rectTransform.sizeDelta= new Vector2(Screen.width, Screen.height);
         gameObject.AddComponent<CanvasGroup>().alpha = 0;
 
         // 背景の初期化
         background = new GameObject();
         background.name = "background";
-        RectTransform backgroundRect = addFillRect(background);
+        RectTransform backgroundRect = TimelineHelper.addFillRect(background);
         background.AddComponent<Image>().color = new Color(0, 0, 0, 1f);
         background.transform.SetParent(gameObject.transform);
         Timeline.TimelineHelper.setRectPosition (backgroundRect, 0, 0, 0, 0);
@@ -62,7 +48,7 @@ public class NarratorManager : SingletonMonoBehaviour<NarratorManager> {
         // narrationTextの初期化
         GameObject narrationText = new GameObject();
         narrationText.name = "Text";
-        RectTransform narrationTextRect = addFillRect(narrationText);
+        RectTransform narrationTextRect = TimelineHelper.addFillRect(narrationText);
         Text text = narrationText.AddComponent<Text>();
         text.alignment = TextAnchor.MiddleCenter;
         Timeline.TimelineHelper.setTextStyle (text, 30, Color.white, Resources.Load<Font> ("fonts/hiragino"));
