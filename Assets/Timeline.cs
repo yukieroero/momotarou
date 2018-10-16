@@ -227,15 +227,13 @@ namespace Timeline {
                         if (select.Count(available:true) > 0) {
                             SelectManager.Instance.Show(select);
                             isNothing = true;
-                            kamishibai.sleep(()=>{
+                            kamishibai.StartCoroutine(SelectManager.Instance.WaitForChoice(select, () => {
                                 // index値を更新
                                 index = kamishibai.TimelineReader.GetLabelIndex(select.Selected.Key);
                                 isNothing = false;
                                 Debug.Log("nothing end");
                                 this.play();
-                            }, descrimination:() => {
-                                return select.Selected != null;
-                            });
+                            }));
                         } else {
                             this.play(line: new string[] {
                                 "goto",

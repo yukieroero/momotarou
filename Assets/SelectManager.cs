@@ -78,6 +78,11 @@ public class Select {
         }
         return count;
     }
+    public string Caption {
+        get {
+            return this.caption;
+        }
+    }
     public string Label {
         get {
             return this.label;
@@ -97,9 +102,14 @@ public class Select {
         op.Choice();
         this.selected = op;
     }
+    public void selectNull() {
+        this.selected = null;
+    }
 }
 
 public class SelectManager : SingletonMonoBehaviour<SelectManager> {
+    private float fadeOpacity = 0.7f;
+    private float fadeDuration = 400f;
     Dictionary<string, Select> selects;
    /// <summary>
     /// select manager
@@ -129,6 +139,8 @@ public class SelectManager : SingletonMonoBehaviour<SelectManager> {
         gameObject.AddComponent<GraphicRaycaster>();
         gameObject.AddComponent<CanvasGroup>();
 
+        gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, fadeOpacity);
+
         GameObject selectArea = new GameObject("Select");
         selectArea.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         VerticalLayoutGroup vlayout = selectArea.AddComponent<VerticalLayoutGroup>();
@@ -141,6 +153,11 @@ public class SelectManager : SingletonMonoBehaviour<SelectManager> {
             {"padding.top", 30},
             {"padding.bottom", 30},
             {"spacing", 30},
+        });
+        Text selectCaption = selectArea.AddComponent<Text>();
+        TimelineHelper.setTextStyle(selectCaption, 30, Color.white, Resources.Load<Font>("fonts/hiragino"));
+        TimelineHelper.AddParam(selectCaption, new Hashtable(){
+            {"selectCaption.alignment", TextAnchor.UpperCenter},
         });
         selectArea.transform.SetParent(gameObject.transform);
         // wrapper.transform.SetParent(null);
@@ -191,7 +208,10 @@ public class SelectManager : SingletonMonoBehaviour<SelectManager> {
     }
 
     public void Show (Select select) {
+        // 繰り返し同じ選択肢を表示する場合、Selectedをnullにしておかないと無限ループしてしまう
+        if (select.Selected != null) select.selectNull();
         Transform selectArea = this.transform.Find("Select");
+        selectArea.GetComponent<Text>().text = select.Caption;
         foreach(Option op in select.Options){
             GameObject option = this.createOptionObject(op);
             option.transform.SetParent(selectArea);
@@ -200,8 +220,22 @@ public class SelectManager : SingletonMonoBehaviour<SelectManager> {
         // 選択肢は通常のCanvasとは別にその上に表示されるが、なぜか一番上の選択肢が選択できなくなるので
         // 選択肢を表示する際に、一旦タッチ判定をなくす
         GameObject.Find("/Canvas").GetComponent<GraphicRaycaster>().enabled = false;
-        // コルーチンをスタートさせる
-        StartCoroutine(WaitForChoice(select));
+        // 表示
+        Hashtable hash = new Hashtable(){
+            {"name", "SelectFader"},
+            {"from", 0f},
+            {"to", fadeOpacity},
+            {"time", fadeDuration / 1000f},
+            {"onupdatetarget", gameObject},
+            {"onupdate", "fadeHandler"},
+        };
+        iTween.ValueTo(gameObject, hash);
+    }
+    private void fadeHandler(float value) {
+        gameObject.GetComponent<CanvasGroup>().alpha = value;
+    }
+    private void actionCallback(System.Action callback) {
+        callback();
     }
 
     public class WaitForSelect : CustomYieldInstruction {
@@ -215,19 +249,38 @@ public class SelectManager : SingletonMonoBehaviour<SelectManager> {
             }
         }
     }
-    private IEnumerator WaitForChoice(Select select) {
+    public IEnumerator WaitForChoice(Select select, System.Action callback=null) {
         yield return new WaitForSelect(select);
         this.Hide();
+        // fadeDuration分待つ
+        yield return new WaitForSeconds(fadeDuration / 1000f);
+        if (callback != null) callback();
     }
     public void Hide () {
-        Transform selectArea = this.transform.Find("Select");
-        Transform[] children = selectArea.GetComponentsInChildren<Transform>();
-        foreach(Transform child in children) {
-            if (child != selectArea) {
-                Destroy(child.gameObject);
+        // 非表示
+        Hashtable hash = new Hashtable(){
+            {"name", "SelectFader"},
+            {"from", gameObject.GetComponent<CanvasGroup>().alpha},
+            {"to", 0f},
+            {"time", fadeDuration / 1000f},
+            {"onupdatetarget", gameObject},
+            {"onupdate", "fadeHandler"},
+            {"oncompletetarget", gameObject},
+            {"oncomplete", "actionCallback"},
+        };
+        // 透明になって見えなくなったら表示されていたOptionを削除する
+        System.Action callback = () => {
+            Transform selectArea = this.transform.Find("Select");
+            Transform[] children = selectArea.GetComponentsInChildren<Transform>();
+            foreach(Transform child in children) {
+                if (child != selectArea) {
+                    Destroy(child.gameObject);
+                }
             }
-        }
-        GameObject.Find("/Canvas").GetComponent<GraphicRaycaster>().enabled = true;
+            GameObject.Find("/Canvas").GetComponent<GraphicRaycaster>().enabled = true;
+        };
+        hash.Add("oncompleteparams", callback);
+        iTween.ValueTo(gameObject, hash);
     }
 
     GameObject createOptionObject(Option op) {
